@@ -1,0 +1,2 @@
+# Real secrets - only commit *.example.yaml
+manifests/**/secret.yaml
