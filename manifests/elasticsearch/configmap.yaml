@@ -1,0 +1,13 @@
+# Single-node cluster with security on and HTTP TLS off (in-cluster traffic only).
+# node.store.allow_mmap=false avoids needing vm.max_map_count on the nodes.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elasticsearch-config
+data:
+  discovery.type: single-node
+  xpack.security.enabled: "true"
+  xpack.security.http.ssl.enabled: "false"
+  xpack.security.transport.ssl.enabled: "false"
+  node.store.allow_mmap: "false"
+  ES_JAVA_OPTS: -Xms1g -Xmx1g

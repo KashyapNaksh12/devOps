@@ -1,2 +1,5 @@
 # Real secrets - only commit *.example.yaml
 manifests/**/secret.yaml
+
+# Temp overlays from scripts/validate-manifests.sh
+.validate.*/

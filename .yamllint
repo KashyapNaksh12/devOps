@@ -1,0 +1,13 @@
+extends: default
+
+rules:
+  document-start: disable
+  line-length:
+    max: 140
+  truthy:
+    # GitHub Actions uses a bare `on:` key.
+    check-keys: false
+  # Allow commented-out blocks such as the optional Ingress tls section.
+  comments-indentation: disable
+  comments:
+    min-spaces-from-content: 1

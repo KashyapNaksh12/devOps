@@ -1,0 +1,5 @@
+# Adds a stub_status endpoint and nginx-prometheus-exporter sidecar to manifests/nginx.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+patches:
+  - path: patch.yaml

@@ -5,7 +5,8 @@ This repository contains the following components:
 - **SonarQube server** (`sonarqube/`) - holds the analysed code results
 - **Sonar Scanner CLI** (`scanner/`) - used to scan the code and send the results to the SonarQube server
 - **Report generator** (`sonar-report/`) - custom Python program to generate an HTML report and convert it into PDF
-- **Common Kubernetes manifests** (`manifests/`) - reusable Kustomize bases for postgres, mysql, redis and nginx (see [manifests/README.md](manifests/README.md))
+- **Common Kubernetes manifests** (`manifests/`) - reusable Kustomize bases for postgres, mysql, redis, nginx, mongodb, rabbitmq, elasticsearch, kafka and SonarQube, plus a Prometheus + Grafana monitoring stack (see [manifests/README.md](manifests/README.md))
+- **CI** (`.github/workflows/`) - lints and validates every manifest on pull requests
 
 
 ## Scan your code with sonar-scanner
@@ -78,10 +79,16 @@ Reusable single-instance Kustomize bases live in `manifests/`:
 | mysql    | StatefulSet | mysql:8.4   | 3306 |
 | redis    | StatefulSet | redis:7.4   | 6379 |
 | nginx    | Deployment  | nginx:1.27  | 80   |
+| mongodb  | StatefulSet | mongo:8.0   | 27017 |
+| rabbitmq | StatefulSet | rabbitmq:4.0-management | 5672 |
+| elasticsearch | StatefulSet | elasticsearch:8.15.3 | 9200 |
+| kafka    | StatefulSet | apache/kafka:3.8.1 | 9092 |
+| sonarqube | StatefulSet | sonarqube:10.7.0-community | 9000 |
+| prometheus / grafana | StatefulSet / Deployment | prom/prometheus:v2.55.1, grafana/grafana:11.3.0 | 9090 / 3000 |
 
 ```bash
 kubectl apply -n <namespace> -f manifests/postgres/secret.yaml   # copied from secret.example.yaml
 kubectl apply -n <namespace> -k manifests/postgres
 ```
 
-See [manifests/README.md](manifests/README.md) for secrets, connection strings and overlays.
+See [manifests/README.md](manifests/README.md) for secrets, connection strings, overlays, monitoring and local validation.
