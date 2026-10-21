@@ -1,4 +1,4 @@
-## To Setup sonarqube on local system
+## To set up SonarQube on a local system
 
 ### Requirements
 ```
@@ -28,9 +28,9 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io
 
 
 
-### Start Sonarqube
+### Start SonarQube
 ```
 cd sonarqube/
-sudo docker-compose up -d 
+sudo docker-compose up -d
 ```
 

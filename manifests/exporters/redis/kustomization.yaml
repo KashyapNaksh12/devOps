@@ -1,0 +1,5 @@
+# Adds a redis_exporter sidecar to manifests/redis and marks the pod for scraping.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+patches:
+  - path: patch.yaml

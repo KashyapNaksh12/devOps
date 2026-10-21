@@ -1,18 +1,21 @@
-# sonarqube-scanner-reportgenerator 
+# devOps
 
-Repository contains all the three components tasks for below tasks :
-Sonarqube server - It will hold the analised code
-Sonarscanner-cli - It will used to scan the code and send the result to sonar server
-Custom python program - to generate & convert html report in to PDF.
+This repository contains the following components:
+
+- **SonarQube server** (`sonarqube/`) - holds the analysed code results
+- **Sonar Scanner CLI** (`scanner/`) - used to scan the code and send the results to the SonarQube server
+- **Report generator** (`sonar-report/`) - custom Python program to generate an HTML report and convert it into PDF
+- **Common Kubernetes manifests** (`manifests/`) - reusable Kustomize bases for postgres, mysql, redis, nginx, mongodb, rabbitmq, elasticsearch, kafka and SonarQube, plus a Prometheus + Grafana monitoring stack (see [manifests/README.md](manifests/README.md))
+- **CI** (`.github/workflows/`) - lints and validates every manifest on pull requests
 
 
-## Scan our code with sonar-scaanner
+## Scan your code with sonar-scanner
 
 ```bash
  /home/$Path/sonar-scanner-4.2.0.1873-linux/bin/sonar-scanner -X -Dsonar.host.url=http://sonarqube.xxx.com -Dsonar.username=admin -Dsonar.password=xxxYmMx -Dsonar.projectName=vexxxxMedia -Dsonar.projectVersion=2 -Dsonar.projectKey=vexxxxedia -Dsonar.sources=. -Dsonar.language=
 ```
 
-## Save the creds permanent in the sonarscan conf file
+## Save the credentials permanently in the sonar-scanner conf file
 ```bash
 /home/ms/sonar/scanner/sonar-scanner-4.2.0.1873-linux/conf/sonar-scanner.properties
 
@@ -62,6 +65,30 @@ python generator.py <sonarqube url> <sonarqube port> <username> <password> <proj
 python generator.py localhost 9000 admin admin oodles
 ```
  
-This will create a report of your project in the pdf_reports/ directory.
+This will create a report of your project in the `pdf_reports/` directory.
 
-### NOTE: Please perform two project scanning action before creating PDF report as the pdf script check current result and last scan result to create final report
+### NOTE: Please run the project scan at least twice before creating the PDF report, as the PDF script compares the current result with the last scan result to create the final report.
+
+## Common Kubernetes manifests
+
+Reusable single-instance Kustomize bases live in `manifests/`:
+
+| Service  | Kind        | Image       | Port |
+|----------|-------------|-------------|------|
+| postgres | StatefulSet | postgres:17 | 5432 |
+| mysql    | StatefulSet | mysql:8.4   | 3306 |
+| redis    | StatefulSet | redis:7.4   | 6379 |
+| nginx    | Deployment  | nginx:1.27  | 80   |
+| mongodb  | StatefulSet | mongo:8.0   | 27017 |
+| rabbitmq | StatefulSet | rabbitmq:4.0-management | 5672 |
+| elasticsearch | StatefulSet | elasticsearch:8.15.3 | 9200 |
+| kafka    | StatefulSet | apache/kafka:3.8.1 | 9092 |
+| sonarqube | StatefulSet | sonarqube:10.7.0-community | 9000 |
+| prometheus / grafana | StatefulSet / Deployment | prom/prometheus:v2.55.1, grafana/grafana:11.3.0 | 9090 / 3000 |
+
+```bash
+kubectl apply -n <namespace> -f manifests/postgres/secret.yaml   # copied from secret.example.yaml
+kubectl apply -n <namespace> -k manifests/postgres
+```
+
+See [manifests/README.md](manifests/README.md) for secrets, connection strings, overlays, monitoring and local validation.

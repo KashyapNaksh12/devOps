@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sonarqube
+spec:
+  serviceName: sonarqube
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: server
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: sonarqube
+          image: sonarqube:10.7.0-community
+          ports:
+            - name: http
+              containerPort: 9000
+          env:
+            - name: SONAR_JDBC_URL
+              value: jdbc:postgresql://sonarqube-postgres:5432/sonar
+            - name: SONAR_JDBC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: sonarqube-db-secret
+                  key: POSTGRES_USER
+            - name: SONAR_JDBC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sonarqube-db-secret
+                  key: POSTGRES_PASSWORD
+            # Avoids needing vm.max_map_count=524288 on the nodes for the embedded Elasticsearch.
+            - name: SONAR_SEARCH_JAVAADDITIONALOPTS
+              value: -Dnode.store.allow_mmap=false
+            - name: SONAR_CE_JAVAOPTS
+              value: -Xmx2048m
+            - name: SONAR_WEB_JAVAOPTS
+              value: -Xmx1024m
+          # Ready once UP, or while a DB migration is pending so /setup is reachable after upgrades.
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - >-
+                  wget --no-proxy -qO- http://localhost:9000/api/system/status |
+                  grep -q -e '"status":"UP"' -e '"status":"DB_MIGRATION_NEEDED"' -e '"status":"DB_MIGRATION_RUNNING"'
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 180
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 500m
+              memory: 3Gi
+            limits:
+              memory: 4Gi
+          volumeMounts:
+            - name: data
+              mountPath: /opt/sonarqube/data
+              subPath: data
+            - name: data
+              mountPath: /opt/sonarqube/extensions
+              subPath: extensions
+            - name: data
+              mountPath: /opt/sonarqube/logs
+              subPath: logs
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi

@@ -1,0 +1,40 @@
+name: Validate manifests
+
+on:
+  pull_request:
+    paths:
+      - manifests/**
+      - scripts/validate-manifests.sh
+      - .yamllint
+      - .github/workflows/validate-manifests.yml
+  push:
+    branches: [main]
+    paths:
+      - manifests/**
+      - scripts/validate-manifests.sh
+      - .yamllint
+      - .github/workflows/validate-manifests.yml
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      KUBECONFORM_VERSION: v0.6.7
+      KUSTOMIZE_VERSION: v5.5.0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kubeconform and kustomize
+        run: |
+          kubeconform_url="https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}"
+          kustomize_url="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}"
+          curl -sSL "${kubeconform_url}/kubeconform-linux-amd64.tar.gz" | sudo tar -xz -C /usr/local/bin kubeconform
+          curl -sSL "${kustomize_url}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" | sudo tar -xz -C /usr/local/bin kustomize
+
+      - name: Lint YAML
+        run: |
+          pip install --quiet yamllint==1.35.1
+          yamllint manifests .github .yamllint
+
+      - name: Build and validate Kustomize bases
+        run: scripts/validate-manifests.sh
