@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Render every Kustomize base under manifests/ (and each exporter component on top of
-# its base) and validate the output against the Kubernetes schemas with kubeconform.
+# Render every Kustomize base under manifests/ and overlays/ (and each exporter component
+# on top of its base) and validate the output against the Kubernetes schemas with kubeconform.
 # Requires: kubeconform, and kustomize or kubectl.
 set -euo pipefail
 
@@ -26,7 +26,7 @@ while read -r file; do
   grep -q '^kind: Component' "$file" && continue
   echo "==> $dir"
   build "$dir" | validate - || failed=1
-done < <(find manifests -name kustomization.yaml | sort)
+done < <(find manifests overlays -name kustomization.yaml | sort)
 
 # Components, each applied to the base of the same name.
 for comp in manifests/exporters/*/; do

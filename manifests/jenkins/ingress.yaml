@@ -1,0 +1,21 @@
+# Set host / ingressClassName for your cluster. Uncomment tls once a cert exists.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jenkins
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: jenkins.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: jenkins
+                port:
+                  name: http
+  # tls:
+  #   - hosts: [jenkins.example.com]
+  #     secretName: jenkins-tls

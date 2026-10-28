@@ -1,0 +1,11 @@
+# Nightly dump of manifests/mysql into a PVC. Apply in the same namespace as mysql.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+labels:
+  - pairs:
+      app.kubernetes.io/name: mysql-backup
+      app.kubernetes.io/part-of: common
+    includeSelectors: true
+resources:
+  - pvc.yaml
+  - cronjob.yaml

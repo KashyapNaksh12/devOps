@@ -1,0 +1,33 @@
+# Example environment: one namespace with postgres (+ exporter and nightly backup),
+# redis (+ exporter) and nginx on a real host. Copy this folder per environment.
+#
+#   kubectl apply -f overlays/example/namespace.yaml
+#   kubectl create secret generic postgres-secret -n example ...   # see manifests/README.md
+#   kubectl create secret generic redis-secret -n example ...
+#   kubectl apply -k overlays/example
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: example
+labels:
+  - pairs:
+      app.kubernetes.io/instance: example
+resources:
+  - namespace.yaml
+  - ../../manifests/postgres
+  - ../../manifests/backups/postgres
+  - ../../manifests/redis
+  - ../../manifests/nginx
+components:
+  - ../../manifests/exporters/postgres
+  - ../../manifests/exporters/redis
+patches:
+  - target: {kind: StatefulSet, name: postgres}
+    patch: |
+      - op: replace
+        path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage
+        value: 20Gi
+  - target: {kind: Ingress, name: nginx}
+    patch: |
+      - op: replace
+        path: /spec/rules/0/host
+        value: app.example.com

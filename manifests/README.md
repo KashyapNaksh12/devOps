@@ -14,11 +14,16 @@ Kustomize base, so it can be applied directly or referenced as a base from an ov
 | elasticsearch | StatefulSet | elasticsearch:8.15.3 | 9200 | 20Gi |
 | kafka    | StatefulSet | apache/kafka:3.8.1 (KRaft) | 9092 | 20Gi |
 | sonarqube | StatefulSet + Postgres | sonarqube:10.7.0-community | 9000 | 10Gi + 10Gi |
+| minio    | StatefulSet | minio/minio:RELEASE.2024-10-13T13-34-11Z | 9000 / 9001 (console) | 20Gi |
+| memcached | Deployment | memcached:1.6 | 11211 | -     |
+| jenkins  | StatefulSet | jenkins/jenkins:2.479.1-lts-jdk17 | 8080 / 50000 (agents) | 20Gi |
 
 Also included:
 
-- `monitoring/` - Prometheus + Grafana in the `monitoring` namespace
+- `monitoring/` - Prometheus, Alertmanager, Grafana, node-exporter and kube-state-metrics in the `monitoring` namespace
 - `exporters/` - optional Kustomize components that add a metrics sidecar to postgres, mysql, redis and nginx
+- `backups/` - nightly `pg_dump` / `mysqldump` CronJobs for postgres and mysql
+- `../overlays/example/` - an example environment composing several bases, exporters and a backup
 
 ## Usage
 
@@ -26,7 +31,7 @@ Also included:
 NS=my-namespace
 kubectl create namespace $NS
 
-# 1. Create the secret (every service except nginx and kafka)
+# 1. Create the secret (every service except nginx, kafka, memcached and jenkins)
 cp manifests/postgres/secret.example.yaml manifests/postgres/secret.yaml
 # edit secret.yaml with real values (it is git-ignored)
 kubectl apply -n $NS -f manifests/postgres/secret.yaml
@@ -55,6 +60,9 @@ kubectl create secret generic postgres-secret -n $NS \
 - Elasticsearch: `http://elasticsearch.<ns>.svc.cluster.local:9200` (user `elastic`)
 - Kafka:    `kafka.<ns>.svc.cluster.local:9092` (PLAINTEXT, no auth)
 - SonarQube: `http://sonarqube.<ns>.svc.cluster.local:9000`, or via the Ingress host
+- MinIO:    S3 API `http://minio.<ns>.svc.cluster.local:9000`, console on port 9001
+- Memcached: `memcached.<ns>.svc.cluster.local:11211` (no auth)
+- Jenkins:  `http://jenkins.<ns>.svc.cluster.local:8080`, agents connect on port 50000
 
 ## SonarQube
 
@@ -71,6 +79,32 @@ kubectl apply -n $NS -k manifests/sonarqube
 The first start takes a few minutes. Log in with `admin` / `admin` and change the password.
 Point the scanner at it with `-Dsonar.host.url=https://sonarqube.example.com`.
 
+## Jenkins
+
+The admin password for the setup wizard is printed in the log on first start:
+
+```bash
+kubectl exec -n $NS jenkins-0 -- cat /var/jenkins_home/secrets/initialAdminPassword
+```
+
+The `jenkins` ServiceAccount can create pods in its namespace, so the Kubernetes plugin
+can run build agents there with the default in-cluster settings
+(Jenkins URL `http://jenkins:8080`, tunnel `jenkins:50000`).
+
+## Backups
+
+`backups/postgres` and `backups/mysql` run a CronJob at 02:00 that dumps the database
+into its own PVC and keeps 7 days of dumps. Apply in the same namespace as the database;
+they reuse `postgres-secret` / `mysql-secret`:
+
+```bash
+kubectl apply -n $NS -k manifests/backups/postgres
+kubectl create job -n $NS --from=cronjob/postgres-backup postgres-backup-now   # run once now
+```
+
+Restore with `pg_restore -d <db> <file>.dump` or `gunzip -c <file>.sql.gz | mysql <db>`.
+Copy dumps off-cluster (e.g. to MinIO / S3) for real disaster recovery.
+
 ## Monitoring
 
 ```bash
@@ -81,9 +115,26 @@ kubectl apply -n monitoring -f manifests/monitoring/grafana/secret.yaml
 ```
 
 Prometheus scrapes every pod in the cluster annotated with `prometheus.io/scrape: "true"`
-and `prometheus.io/port`. Grafana comes with Prometheus already added as its data source.
+and `prometheus.io/port`, plus the kubelets (through the API server) for PVC usage.
+Grafana comes with Prometheus already added as its data source.
 
-RabbitMQ exposes metrics natively and is already annotated. For postgres, mysql, redis and
+The stack also includes:
+
+- **node-exporter** - DaemonSet on every node for CPU, memory and disk metrics
+- **kube-state-metrics** - pod, deployment, job and PVC state
+- **Alertmanager** - receives the alerts in `prometheus/alerts.yml` (target down, crash
+  looping, pod not ready, PVC / node disk almost full, low node memory, failed jobs).
+  It ships with an empty receiver: add Slack / email / webhook settings to
+  `alertmanager/alertmanager.yml` to actually get notified.
+
+Reach the UIs with port-forward:
+
+```bash
+kubectl port-forward -n monitoring svc/prometheus 9090
+kubectl port-forward -n monitoring svc/alertmanager 9093
+```
+
+RabbitMQ and MinIO expose metrics natively and are already annotated. For postgres, mysql, redis and
 nginx, add the matching exporter component in an overlay:
 
 ```yaml
@@ -99,12 +150,25 @@ components:
 
 ## Validation
 
-CI (`.github/workflows/validate-manifests.yml`) runs yamllint and builds every base and
-exporter component, checking the output with kubeconform. Run the same checks locally with:
+CI (`.github/workflows/validate-manifests.yml`) runs yamllint, builds every base, overlay and
+exporter component, checks the output with kubeconform, and checks the Prometheus rules and
+Alertmanager config with `promtool` / `amtool`. Run the same checks locally with:
 
 ```bash
-yamllint manifests .github .yamllint
+yamllint manifests overlays .github .yamllint
 scripts/validate-manifests.sh          # needs kubeconform and kustomize (or kubectl)
+```
+
+## Example overlay
+
+`overlays/example` puts postgres (with exporter, a 20Gi volume and nightly backups),
+redis (with exporter) and nginx (with its own host) into an `example` namespace. Copy it
+to e.g. `overlays/prod`, change the namespace and patches, then:
+
+```bash
+kubectl apply -f overlays/prod/namespace.yaml
+# create postgres-secret and redis-secret in the namespace
+kubectl apply -k overlays/prod
 ```
 
 ## Customising
@@ -135,4 +199,7 @@ patches:
   `vm.max_map_count` raised. Raise it and drop the setting for heavy workloads.
 - Kafka uses a fixed `CLUSTER_ID` in `kafka/configmap.yaml`; generate your own per cluster.
 - PVCs use the cluster's default StorageClass; set `storageClassName` in an overlay if needed.
-- Nginx Ingress assumes the `nginx` ingress class; change the host before applying.
+- Ingresses (nginx, sonarqube, grafana, minio, jenkins) assume the `nginx` ingress class;
+  change the hosts before applying.
+- node-exporter runs with `hostNetwork` / `hostPID` and mounts the host root read-only;
+  namespaces enforcing the `restricted` Pod Security Standard will reject it.

@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mysql-backup
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
+            fsGroup: 999
+          containers:
+            - name: backup
+              image: mysql:8.4
+              env:
+                - name: MYSQL_HOST
+                  value: mysql
+                - name: RETENTION_DAYS
+                  value: "7"
+                - name: MYSQL_PWD
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-secret
+                      key: MYSQL_ROOT_PASSWORD
+                - name: MYSQL_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-secret
+                      key: MYSQL_DATABASE
+              command:
+                - bash
+                - -c
+                - |
+                  set -euo pipefail
+                  file="/backup/${MYSQL_DATABASE}-$(date +%Y%m%d-%H%M%S).sql.gz"
+                  mysqldump -h "$MYSQL_HOST" -uroot --single-transaction --routines --triggers \
+                    "$MYSQL_DATABASE" | gzip > "$file.tmp"
+                  mv "$file.tmp" "$file"
+                  echo "wrote $file"
+                  find /backup -name '*.sql.gz' -mtime +"$RETENTION_DAYS" -print -delete
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  memory: 512Mi
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: mysql-backup

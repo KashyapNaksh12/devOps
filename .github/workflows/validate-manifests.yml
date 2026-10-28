@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - manifests/**
+      - overlays/**
       - scripts/validate-manifests.sh
       - .yamllint
       - .github/workflows/validate-manifests.yml
@@ -11,6 +12,7 @@ on:
     branches: [main]
     paths:
       - manifests/**
+      - overlays/**
       - scripts/validate-manifests.sh
       - .yamllint
       - .github/workflows/validate-manifests.yml
@@ -34,7 +36,15 @@ jobs:
       - name: Lint YAML
         run: |
           pip install --quiet yamllint==1.35.1
-          yamllint manifests .github .yamllint
+          yamllint manifests overlays .github .yamllint
 
       - name: Build and validate Kustomize bases
         run: scripts/validate-manifests.sh
+
+      - name: Check Prometheus rules and Alertmanager config
+        run: |
+          mon="$PWD/manifests/monitoring"
+          docker run --rm -v "$mon:/w:ro" --entrypoint promtool prom/prometheus:v2.55.1 \
+            check rules /w/prometheus/alerts.yml
+          docker run --rm -v "$mon:/w:ro" --entrypoint amtool prom/alertmanager:v0.27.0 \
+            check-config /w/alertmanager/alertmanager.yml

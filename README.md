@@ -5,7 +5,8 @@ This repository contains the following components:
 - **SonarQube server** (`sonarqube/`) - holds the analysed code results
 - **Sonar Scanner CLI** (`scanner/`) - used to scan the code and send the results to the SonarQube server
 - **Report generator** (`sonar-report/`) - custom Python program to generate an HTML report and convert it into PDF
-- **Common Kubernetes manifests** (`manifests/`) - reusable Kustomize bases for postgres, mysql, redis, nginx, mongodb, rabbitmq, elasticsearch, kafka and SonarQube, plus a Prometheus + Grafana monitoring stack (see [manifests/README.md](manifests/README.md))
+- **Common Kubernetes manifests** (`manifests/`) - reusable Kustomize bases for postgres, mysql, redis, nginx, mongodb, rabbitmq, elasticsearch, kafka, SonarQube, MinIO, Memcached and Jenkins, database backup CronJobs, and a Prometheus + Alertmanager + Grafana monitoring stack (see [manifests/README.md](manifests/README.md))
+- **Example overlay** (`overlays/example/`) - shows how to compose the bases into one environment
 - **CI** (`.github/workflows/`) - lints and validates every manifest on pull requests
 
 
@@ -84,7 +85,11 @@ Reusable single-instance Kustomize bases live in `manifests/`:
 | elasticsearch | StatefulSet | elasticsearch:8.15.3 | 9200 |
 | kafka    | StatefulSet | apache/kafka:3.8.1 | 9092 |
 | sonarqube | StatefulSet | sonarqube:10.7.0-community | 9000 |
+| minio    | StatefulSet | minio/minio:RELEASE.2024-10-13T13-34-11Z | 9000 |
+| memcached | Deployment | memcached:1.6 | 11211 |
+| jenkins  | StatefulSet | jenkins/jenkins:2.479.1-lts-jdk17 | 8080 |
 | prometheus / grafana | StatefulSet / Deployment | prom/prometheus:v2.55.1, grafana/grafana:11.3.0 | 9090 / 3000 |
+| alertmanager | StatefulSet | prom/alertmanager:v0.27.0 | 9093 |
 
 ```bash
 kubectl apply -n <namespace> -f manifests/postgres/secret.yaml   # copied from secret.example.yaml

@@ -1,0 +1,58 @@
+groups:
+  - name: common
+    rules:
+      - alert: TargetDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.job }} target {{ $labels.instance }} is down"
+
+      - alert: PodCrashLooping
+        expr: increase(kube_pod_container_status_restarts_total[15m]) > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.namespace }}/{{ $labels.pod }} ({{ $labels.container }}) is restarting repeatedly"
+
+      - alert: PodNotReady
+        expr: sum by (namespace, pod) (kube_pod_status_ready{condition="false"}) > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.namespace }}/{{ $labels.pod }} has not been ready for 15 minutes"
+
+      - alert: PersistentVolumeFillingUp
+        expr: kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes < 0.10
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} has less than 10% free"
+
+      - alert: NodeFilesystemAlmostFull
+        expr: node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} < 0.10
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.instance }} {{ $labels.mountpoint }} has less than 10% free"
+
+      - alert: NodeHighMemory
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.instance }} has less than 10% memory available"
+
+      - alert: CronJobFailed
+        expr: kube_job_status_failed > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Job {{ $labels.namespace }}/{{ $labels.job_name }} failed"

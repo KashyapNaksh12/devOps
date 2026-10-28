@@ -9,8 +9,9 @@ resources:
   - rbac.yaml
   - service.yaml
   - statefulset.yaml
-# Generated with a hash suffix so editing prometheus.yml rolls the pod.
+# Generated with a hash suffix so editing prometheus.yml or alerts.yml rolls the pod.
 configMapGenerator:
   - name: prometheus-config
     files:
       - prometheus.yml
+      - alerts.yml

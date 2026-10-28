@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+labels:
+  - pairs:
+      app.kubernetes.io/name: node-exporter
+      app.kubernetes.io/part-of: monitoring
+    includeSelectors: true
+resources:
+  - daemonset.yaml

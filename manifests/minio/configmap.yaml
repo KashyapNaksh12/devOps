@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: minio-config
+data:
+  # Lets Prometheus scrape /minio/v2/metrics/cluster without a bearer token.
+  MINIO_PROMETHEUS_AUTH_TYPE: public

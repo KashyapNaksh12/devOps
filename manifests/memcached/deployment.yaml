@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memcached
+spec:
+  replicas: 1
+  template:
+    spec:
+      securityContext:
+        runAsUser: 11211
+        runAsNonRoot: true
+      containers:
+        - name: memcached
+          image: memcached:1.6
+          # -m: cache size in MB, keep below the memory limit.
+          args: ["-m", "200", "-c", "1024"]
+          ports:
+            - name: memcached
+              containerPort: 11211
+          readinessProbe:
+            tcpSocket:
+              port: memcached
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: memcached
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi

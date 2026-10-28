@@ -1,0 +1,34 @@
+# Set hosts / ingressClassName for your cluster. Uncomment tls once a cert exists.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minio
+  annotations:
+    # Allow large object uploads through ingress-nginx.
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: s3.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: minio
+                port:
+                  name: api
+    - host: minio.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: minio
+                port:
+                  name: console
+  # tls:
+  #   - hosts: [s3.example.com, minio.example.com]
+  #     secretName: minio-tls

@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: jenkins
+spec:
+  serviceName: jenkins
+  replicas: 1
+  template:
+    spec:
+      serviceAccountName: jenkins
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: jenkins
+          image: jenkins/jenkins:2.479.1-lts-jdk17
+          env:
+            - name: JAVA_OPTS
+              value: -XX:MaxRAMPercentage=75
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: agent
+              containerPort: 50000
+          readinessProbe:
+            httpGet:
+              path: /login
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /login
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              memory: 2Gi
+          volumeMounts:
+            - name: data
+              mountPath: /var/jenkins_home
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 20Gi

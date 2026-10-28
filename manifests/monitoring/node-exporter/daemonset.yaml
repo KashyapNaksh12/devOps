@@ -1,0 +1,51 @@
+# Runs on every node, including control-plane nodes. Uses the host network so the
+# scraped address is the node IP.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+    spec:
+      hostNetwork: true
+      hostPID: true
+      securityContext:
+        runAsUser: 65534
+        runAsNonRoot: true
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: node-exporter
+          image: prom/node-exporter:v1.8.2
+          args:
+            - --path.rootfs=/host
+            - --web.listen-address=:9100
+          ports:
+            - name: metrics
+              containerPort: 9100
+          readinessProbe:
+            httpGet:
+              path: /
+              port: metrics
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          volumeMounts:
+            - name: root
+              mountPath: /host
+              readOnly: true
+              mountPropagation: HostToContainer
+      volumes:
+        - name: root
+          hostPath:
+            path: /

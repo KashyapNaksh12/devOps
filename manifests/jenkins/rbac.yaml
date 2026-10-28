@@ -1,0 +1,29 @@
+# Lets the Jenkins Kubernetes plugin run build agents as pods in its own namespace.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jenkins
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: jenkins
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/exec", "pods/log", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "create", "delete", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["events", "secrets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jenkins
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: jenkins
+subjects:
+  - kind: ServiceAccount
+    name: jenkins
