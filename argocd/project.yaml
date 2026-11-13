@@ -1,0 +1,16 @@
+# Argo CD project for everything in this repo. Install Argo CD first: https://argo-cd.readthedocs.io/
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: devops
+  namespace: argocd
+spec:
+  description: Common manifests, monitoring and environment overlays
+  sourceRepos:
+    - https://github.com/KashyapNaksh12/devOps.git
+  destinations:
+    - namespace: "*"
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"

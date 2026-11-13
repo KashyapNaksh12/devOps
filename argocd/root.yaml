@@ -1,0 +1,20 @@
+# App of apps: apply this one file (kubectl apply -n argocd -f argocd/project.yaml -f argocd/root.yaml)
+# and Argo CD creates and keeps in sync every Application under argocd/apps/.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+spec:
+  project: devops
+  source:
+    repoURL: https://github.com/KashyapNaksh12/devOps.git
+    targetRevision: main
+    path: argocd/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

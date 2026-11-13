@@ -1,0 +1,45 @@
+# Prod: 3 nginx replicas, bigger postgres volume, nightly dump + off-site copy, TLS from cert-manager,
+# secrets from the External Secrets Operator (see externalsecrets.yaml), network policies.
+# Prerequisites: ingress-nginx, cert-manager (+ manifests/cert-manager issuers) and the External
+# Secrets Operator with a ClusterSecretStore named aws-secrets (manifests/external-secrets).
+# The off-site job reads offsite-backup-secret, also provided by an ExternalSecret.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: prod
+labels:
+  - pairs:
+      app.kubernetes.io/instance: prod
+resources:
+  - namespace.yaml
+  - externalsecrets.yaml
+  - ../../manifests/postgres
+  - ../../manifests/backups/postgres
+  - ../../manifests/backups/offsite/postgres
+  - ../../manifests/redis
+  - ../../manifests/nginx
+  - ../../manifests/network-policies
+components:
+  - ../../manifests/exporters/postgres
+  - ../../manifests/exporters/redis
+  - ../../manifests/components/cert-manager-tls
+patches:
+  - target: {kind: StatefulSet, name: postgres}
+    patch: |
+      - op: replace
+        path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage
+        value: 50Gi
+  - target: {kind: Deployment, name: nginx}
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 3
+  - target: {kind: Ingress, name: nginx}
+    patch: |
+      - op: replace
+        path: /spec/rules/0/host
+        value: app.example.com
+      - op: add
+        path: /spec/tls
+        value:
+          - hosts: [app.example.com]
+            secretName: nginx-tls

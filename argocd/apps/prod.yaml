@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prod
+  namespace: argocd
+spec:
+  project: devops
+  source:
+    repoURL: https://github.com/KashyapNaksh12/devOps.git
+    targetRevision: main
+    path: overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod
+  syncPolicy:
+    # Prod is synced by hand (argocd app sync prod) after reviewing the diff.
+    syncOptions:
+      - CreateNamespace=true
