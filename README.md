@@ -3,37 +3,41 @@
 This repository contains the following components:
 
 - **SonarQube server** (`sonarqube/`) - holds the analysed code results
-- **Sonar Scanner CLI** (`scanner/`) - used to scan the code and send the results to the SonarQube server
+- **Sonar Scanner CLI** - used to scan the code and send the results to the SonarQube server (not stored in git; download it, see below)
 - **Report generator** (`sonar-report/`) - custom Python program to generate an HTML report and convert it into PDF
-- **Common Kubernetes manifests** (`manifests/`) - reusable Kustomize bases for postgres, mysql, redis, nginx, mongodb, rabbitmq, elasticsearch, kafka, SonarQube, MinIO, Memcached and Jenkins, database backup CronJobs, and a Prometheus + Alertmanager + Grafana monitoring stack (see [manifests/README.md](manifests/README.md))
+- **Common Kubernetes manifests** (`manifests/`) - reusable Kustomize bases for postgres, mysql, redis, nginx, mongodb, rabbitmq, elasticsearch, kafka, SonarQube, MinIO, Memcached and Jenkins, database backup CronJobs, baseline NetworkPolicies, and a Prometheus + Alertmanager + Grafana monitoring stack (see [manifests/README.md](manifests/README.md))
 - **Example overlay** (`overlays/example/`) - shows how to compose the bases into one environment
 - **CI** (`.github/workflows/`) - lints and validates every manifest on pull requests
 
 
+## Install sonar-scanner
+
+The scanner is not committed to this repo. Download it (it ships with its own JRE) and put it on your `PATH`:
+
+```bash
+VER=6.2.1.4610
+curl -sSLO https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$VER-linux-x64.zip
+unzip -q sonar-scanner-cli-$VER-linux-x64.zip -d ~/sonar
+export PATH=~/sonar/sonar-scanner-$VER-linux-x64/bin:$PATH
+```
+
 ## Scan your code with sonar-scanner
 
+Use a token (My Account > Security in SonarQube) instead of a username and password, and keep it out of git:
+
 ```bash
- /home/$Path/sonar-scanner-4.2.0.1873-linux/bin/sonar-scanner -X -Dsonar.host.url=http://sonarqube.xxx.com -Dsonar.username=admin -Dsonar.password=xxxYmMx -Dsonar.projectName=vexxxxMedia -Dsonar.projectVersion=2 -Dsonar.projectKey=vexxxxedia -Dsonar.sources=. -Dsonar.language=
+export SONAR_TOKEN=<your-token>
+sonar-scanner -Dsonar.host.url=http://sonarqube.xxx.com \
+  -Dsonar.projectName=MyProject -Dsonar.projectVersion=2 \
+  -Dsonar.projectKey=MyProject -Dsonar.sources=.
 ```
 
-## Save the credentials permanently in the sonar-scanner conf file
-```bash
-/home/ms/sonar/scanner/sonar-scanner-4.2.0.1873-linux/conf/sonar-scanner.properties
+To avoid repeating the server URL, put it in `conf/sonar-scanner.properties` inside the scanner folder:
 
-#----- Default SonarQube server
+```
 sonar.host.url=http://sonarqube.xxx.com
-sonar.login=admin
-sonar.password=Zmxxx
-
-#----- Default source code encoding
 sonar.sourceEncoding=UTF-8
-
 ```
-## Run & Scan the code with configured conf file
-```
- /home/sonar/Scanner/sonar-scanner-4.2.0.1873-linux/bin/sonar-scanner -X -Dsonar.projectName=vertexMedia -Dsonar.projectVersion=2 -Dsonar.projectKey=vertexMedia -Dsonar.sources=. -Dsonar.language=
-```
-
 
 ## Sonarqube PDF Report Generation
 

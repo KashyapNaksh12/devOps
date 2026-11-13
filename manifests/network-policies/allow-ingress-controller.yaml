@@ -1,0 +1,14 @@
+# Lets the ingress controller (namespace ingress-nginx) reach pods behind an Ingress.
+# Change the namespace label if your controller lives elsewhere.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-controller
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx

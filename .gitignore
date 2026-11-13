@@ -3,3 +3,9 @@ manifests/**/secret.yaml
 
 # Temp overlays from scripts/validate-manifests.sh
 .validate.*/
+
+# Vendored / generated files (download the scanner separately, see README)
+/scanner/
+sonar-report/sonarqube-report/html/
+__pycache__/
+*.pyc
