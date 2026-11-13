@@ -1,0 +1,14 @@
+# Baseline network policies for an application namespace: deny all ingress, then allow
+# same-namespace traffic, Prometheus scraping and the ingress controller.
+# Do not apply to the monitoring or ingress-nginx namespaces themselves.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+labels:
+  - pairs:
+      app.kubernetes.io/name: network-policies
+      app.kubernetes.io/part-of: common
+resources:
+  - default-deny-ingress.yaml
+  - allow-same-namespace.yaml
+  - allow-prometheus-scrape.yaml
+  - allow-ingress-controller.yaml

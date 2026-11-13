@@ -21,6 +21,7 @@ Kustomize base, so it can be applied directly or referenced as a base from an ov
 Also included:
 
 - `monitoring/` - Prometheus, Alertmanager, Grafana, node-exporter and kube-state-metrics in the `monitoring` namespace
+- `network-policies/` - baseline NetworkPolicies for an application namespace (default-deny ingress, then allow same-namespace, Prometheus and the ingress controller)
 - `exporters/` - optional Kustomize components that add a metrics sidecar to postgres, mysql, redis and nginx
 - `backups/` - nightly `pg_dump` / `mysqldump` CronJobs for postgres and mysql
 - `../overlays/example/` - an example environment composing several bases, exporters and a backup
@@ -203,3 +204,16 @@ patches:
   change the hosts before applying.
 - node-exporter runs with `hostNetwork` / `hostPID` and mounts the host root read-only;
   namespaces enforcing the `restricted` Pod Security Standard will reject it.
+
+## Network policies and disruption budgets
+
+`network-policies/` is a Kustomization you add to an application namespace (see
+`overlays/example`). It denies all inbound traffic, then allows pods in the same namespace,
+Prometheus from the `monitoring` namespace, and the ingress controller from `ingress-nginx`.
+Edit `allow-ingress-controller.yaml` if your controller runs in another namespace. Do not apply
+it to the `monitoring` or `ingress-nginx` namespaces. Policies only take effect if the CNI
+supports them (Calico, Cilium, ...).
+
+`nginx` ships a PodDisruptionBudget (`minAvailable: 1`) so node drains keep one replica up.
+The single-replica StatefulSets (kafka, elasticsearch, ...) have none on purpose: a budget on
+one replica would block node drains.

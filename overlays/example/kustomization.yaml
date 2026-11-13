@@ -17,6 +17,7 @@ resources:
   - ../../manifests/backups/postgres
   - ../../manifests/redis
   - ../../manifests/nginx
+  - ../../manifests/network-policies
 components:
   - ../../manifests/exporters/postgres
   - ../../manifests/exporters/redis
