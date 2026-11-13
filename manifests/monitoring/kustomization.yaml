@@ -8,3 +8,5 @@ resources:
   - alertmanager
   - node-exporter
   - kube-state-metrics
+  - loki
+  - promtail
