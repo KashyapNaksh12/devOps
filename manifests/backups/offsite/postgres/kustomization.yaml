@@ -1,0 +1,22 @@
+# Uploads the postgres backup PVC to s3://$BUCKET/postgres. Apply next to manifests/backups/postgres.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+labels:
+  - pairs:
+      app.kubernetes.io/name: postgres-offsite-backup
+      app.kubernetes.io/part-of: common
+    includeSelectors: true
+resources:
+  - ../base
+patches:
+  - target: {kind: CronJob, name: offsite-backup}
+    patch: |
+      - op: replace
+        path: /metadata/name
+        value: postgres-offsite-backup
+      - op: replace
+        path: /spec/jobTemplate/spec/template/spec/volumes/0/persistentVolumeClaim/claimName
+        value: postgres-backup
+      - op: replace
+        path: /spec/jobTemplate/spec/template/spec/containers/0/env/2/value
+        value: postgres

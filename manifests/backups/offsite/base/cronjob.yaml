@@ -1,0 +1,65 @@
+# Copies a backup PVC to an S3-compatible bucket (MinIO in the cluster by default) with `mc mirror`.
+# Do not apply this directory directly: use the postgres/, mysql/ or mongodb/ variants, which set
+# the PVC and the bucket path. It runs an hour after the dump jobs, so the RWO PVC is free.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: offsite-backup
+spec:
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
+            fsGroup: 999
+          containers:
+            - name: upload
+              image: minio/mc:RELEASE.2024-10-08T09-37-26Z
+              env:
+                - name: MC_CONFIG_DIR
+                  value: /tmp/mc
+                - name: BUCKET
+                  value: backups
+                - name: TARGET_PATH
+                  value: change-me
+                # MC_HOST_offsite=http://ACCESS_KEY:SECRET_KEY@minio:9000  (see secret.example.yaml)
+                - name: MC_HOST_offsite
+                  valueFrom:
+                    secretKeyRef:
+                      name: offsite-backup-secret
+                      key: MC_HOST_offsite
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  mc mb --ignore-existing "offsite/${BUCKET}"
+                  mc mirror --overwrite /backup "offsite/${BUCKET}/${TARGET_PATH}"
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: change-me
+            - name: tmp
+              emptyDir: {}

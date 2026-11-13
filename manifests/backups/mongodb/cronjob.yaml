@@ -1,0 +1,62 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mongodb-backup
+spec:
+  schedule: "30 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
+            fsGroup: 999
+          containers:
+            - name: backup
+              image: mongo:8.0
+              env:
+                - name: RETENTION_DAYS
+                  value: "7"
+                - name: MONGO_INITDB_ROOT_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: mongodb-secret
+                      key: MONGO_INITDB_ROOT_USERNAME
+                - name: MONGO_INITDB_ROOT_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: mongodb-secret
+                      key: MONGO_INITDB_ROOT_PASSWORD
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  file="/backup/mongodb-$(date +%Y%m%d-%H%M%S).archive.gz"
+                  mongodump --host=mongodb --username="$MONGO_INITDB_ROOT_USERNAME" \
+                    --password="$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase=admin \
+                    --gzip --archive="$file.tmp"
+                  mv "$file.tmp" "$file"
+                  echo "wrote $file"
+                  find /backup -name '*.archive.gz' -mtime +"$RETENTION_DAYS" -print -delete
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  memory: 512Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: mongodb-backup
