@@ -231,7 +231,7 @@ clear of the dump schedule.
 
 ## Logging
 
-Promtail (a DaemonSet) tails `/var/log/pods` on every node and pushes to Loki (single binary,
+Promtail (a DaemonSet) tails `/var/log/pods` on every node (containerd, CRI-O or the docker runtime) and pushes to Loki (single binary,
 20Gi, 7-day retention). Grafana has a `Loki` datasource and a provisioned "Cluster overview"
 dashboard; add more JSON dashboards under `monitoring/grafana/dashboards/` and list them in its
 `kustomization.yaml`. Promtail runs as root with a read-only `hostPath` mount, so the

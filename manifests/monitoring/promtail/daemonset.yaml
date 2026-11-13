@@ -49,6 +49,10 @@ spec:
             - name: pods
               mountPath: /var/log/pods
               readOnly: true
+            # Only used on docker-runtime nodes, where /var/log/pods holds symlinks into here.
+            - name: docker-containers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
       volumes:
         - name: config
           configMap:
@@ -60,3 +64,7 @@ spec:
         - name: pods
           hostPath:
             path: /var/log/pods
+        - name: docker-containers
+          hostPath:
+            path: /var/lib/docker/containers
+            type: DirectoryOrCreate

@@ -9,8 +9,16 @@ clients:
 
 scrape_configs:
   - job_name: kubernetes-pods
+    # containerd / CRI-O write CRI lines; the docker runtime writes JSON lines ({"log": ...}).
     pipeline_stages:
-      - cri: {}
+      - match:
+          selector: '{namespace=~".+"} |~ "^[{].log.:"'
+          stages:
+            - docker: {}
+      - match:
+          selector: '{namespace=~".+"} !~ "^[{].log.:"'
+          stages:
+            - cri: {}
     kubernetes_sd_configs:
       - role: pod
         # Only tail pods on this node (NODE_NAME is expanded at start-up).
