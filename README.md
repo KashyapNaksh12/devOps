@@ -5,8 +5,10 @@ This repository contains the following components:
 - **SonarQube server** (`sonarqube/`) - holds the analysed code results
 - **Sonar Scanner CLI** - used to scan the code and send the results to the SonarQube server (not stored in git; download it, see below)
 - **Report generator** (`sonar-report/`) - custom Python program to generate an HTML report and convert it into PDF
-- **Common Kubernetes manifests** (`manifests/`) - reusable Kustomize bases for postgres, mysql, redis, nginx, mongodb, rabbitmq, elasticsearch, kafka, SonarQube, MinIO, Memcached and Jenkins, database backup CronJobs, baseline NetworkPolicies, and a Prometheus + Alertmanager + Grafana monitoring stack (see [manifests/README.md](manifests/README.md))
-- **Example overlay** (`overlays/example/`) - shows how to compose the bases into one environment
+- **Common Kubernetes manifests** (`manifests/`) - reusable Kustomize bases for postgres, mysql, redis, nginx, mongodb, rabbitmq, elasticsearch, kafka, SonarQube, MinIO, Memcached and Jenkins, database backup CronJobs, baseline NetworkPolicies, TLS/secrets helpers, and a Prometheus + Alertmanager + Grafana + Loki monitoring stack (see [manifests/README.md](manifests/README.md))
+- **Overlays** (`overlays/`) - `example/`, `dev/` and `prod/` show how to compose the bases into an environment
+- **Argo CD** (`argocd/`) - GitOps: apply `argocd/project.yaml` and `argocd/root.yaml` and Argo CD keeps dev, prod and monitoring in sync
+- **Docs** (`docs/`) - backup restore runbook
 - **CI** (`.github/workflows/`) - lints and validates every manifest on pull requests
 
 
