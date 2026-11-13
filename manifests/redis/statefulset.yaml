@@ -7,9 +7,15 @@ spec:
   replicas: 1
   template:
     spec:
+      securityContext:
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: redis
           image: redis:7.4
+          securityContext:
+            allowPrivilegeEscalation: false
           command: ["sh", "-c", "exec redis-server /etc/redis/redis.conf --requirepass \"$REDIS_PASSWORD\""]
           ports:
             - name: redis

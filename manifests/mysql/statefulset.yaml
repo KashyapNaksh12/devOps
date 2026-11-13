@@ -7,9 +7,15 @@ spec:
   replicas: 1
   template:
     spec:
+      securityContext:
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: mysql
           image: mysql:8.4
+          securityContext:
+            allowPrivilegeEscalation: false
           ports:
             - name: mysql
               containerPort: 3306
