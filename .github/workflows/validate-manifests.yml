@@ -5,6 +5,7 @@ on:
     paths:
       - manifests/**
       - overlays/**
+      - argocd/**
       - scripts/validate-manifests.sh
       - .yamllint
       - .github/workflows/validate-manifests.yml
@@ -13,6 +14,7 @@ on:
     paths:
       - manifests/**
       - overlays/**
+      - argocd/**
       - scripts/validate-manifests.sh
       - .yamllint
       - .github/workflows/validate-manifests.yml
@@ -36,10 +38,15 @@ jobs:
       - name: Lint YAML
         run: |
           pip install --quiet yamllint==1.35.1
-          yamllint manifests overlays .github .yamllint
+          yamllint manifests overlays argocd .github .yamllint
 
       - name: Build and validate Kustomize bases
         run: scripts/validate-manifests.sh
+
+      - name: Check Loki config
+        run: |
+          docker run --rm -v "$PWD/manifests/monitoring/loki:/w:ro" grafana/loki:3.2.1 \
+            -config.file=/w/loki.yaml -verify-config
 
       - name: Check Prometheus rules and Alertmanager config
         run: |

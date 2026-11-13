@@ -1,0 +1,15 @@
+# Adds the cert-manager annotation to every Ingress in the overlay. cert-manager only issues a
+# certificate for Ingresses that also have a `tls:` section, so add that per host in the overlay
+# (see overlays/prod). Change the issuer name here, or patch it, to use letsencrypt-staging.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+patches:
+  - target:
+      kind: Ingress
+    patch: |-
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: not-important
+        annotations:
+          cert-manager.io/cluster-issuer: letsencrypt-prod

@@ -14,3 +14,10 @@ configMapGenerator:
   - name: grafana-datasources
     files:
       - datasources.yaml
+  - name: grafana-dashboard-provider
+    files:
+      - dashboard-provider.yaml
+  # Dashboards as code: drop more *.json files in dashboards/ and list them here.
+  - name: grafana-dashboards
+    files:
+      - dashboards/cluster-overview.json

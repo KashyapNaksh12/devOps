@@ -13,7 +13,13 @@ else
   build() { kubectl kustomize "$1"; }
 fi
 
-validate() { kubeconform -strict -summary -output text "$@"; }
+# Built-in schemas plus the community CRD catalog (cert-manager, External Secrets, ...).
+# CRDs missing from the catalog are skipped rather than failing the run.
+crds='https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+validate() {
+  kubeconform -strict -ignore-missing-schemas -schema-location default -schema-location "$crds" \
+    -summary -output text "$@"
+}
 
 # Inside the repo: kustomize only accepts relative paths to other kustomizations.
 tmp="$(mktemp -d "$root/.validate.XXXXXX")"

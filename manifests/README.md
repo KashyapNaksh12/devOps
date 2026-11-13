@@ -14,17 +14,20 @@ Kustomize base, so it can be applied directly or referenced as a base from an ov
 | elasticsearch | StatefulSet | elasticsearch:8.15.3 | 9200 | 20Gi |
 | kafka    | StatefulSet | apache/kafka:3.8.1 (KRaft) | 9092 | 20Gi |
 | sonarqube | StatefulSet + Postgres | sonarqube:10.7.0-community | 9000 | 10Gi + 10Gi |
-| minio    | StatefulSet | minio/minio:RELEASE.2024-10-13T13-34-11Z | 9000 / 9001 (console) | 20Gi |
+| minio    | StatefulSet | cgr.dev/chainguard/minio:latest | 9000 / 9001 (console) | 20Gi |
 | memcached | Deployment | memcached:1.6 | 11211 | -     |
 | jenkins  | StatefulSet | jenkins/jenkins:2.479.1-lts-jdk17 | 8080 / 50000 (agents) | 20Gi |
 
 Also included:
 
-- `monitoring/` - Prometheus, Alertmanager, Grafana, node-exporter and kube-state-metrics in the `monitoring` namespace
+- `monitoring/` - Prometheus, Alertmanager, Grafana (with a provisioned cluster dashboard), node-exporter, kube-state-metrics, Loki and Promtail in the `monitoring` namespace
 - `network-policies/` - baseline NetworkPolicies for an application namespace (default-deny ingress, then allow same-namespace, Prometheus and the ingress controller)
 - `exporters/` - optional Kustomize components that add a metrics sidecar to postgres, mysql, redis and nginx
-- `backups/` - nightly `pg_dump` / `mysqldump` CronJobs for postgres and mysql
-- `../overlays/example/` - an example environment composing several bases, exporters and a backup
+- `backups/` - nightly `pg_dump` / `mysqldump` / `mongodump` CronJobs, plus `backups/offsite/` to copy them to an S3-compatible bucket (MinIO by default); restore steps are in [../docs/restore.md](../docs/restore.md)
+- `cert-manager/` and `components/cert-manager-tls/` - Let's Encrypt ClusterIssuers and a component that annotates Ingresses for them
+- `external-secrets/` - example ClusterSecretStore for the External Secrets Operator
+- `../overlays/` - `example/`, `dev/` and `prod/` environments composing the bases
+- `../argocd/` - Argo CD project and Applications (app of apps)
 
 ## Usage
 
@@ -217,3 +220,28 @@ supports them (Calico, Cilium, ...).
 `nginx` ships a PodDisruptionBudget (`minAvailable: 1`) so node drains keep one replica up.
 The single-replica StatefulSets (kafka, elasticsearch, ...) have none on purpose: a budget on
 one replica would block node drains.
+
+## Off-site backups
+
+`backups/offsite/<db>` runs an hour after the dump and mirrors the backup PVC to
+`s3://backups/<db>` with `mc mirror`. Create `offsite-backup-secret` from
+`backups/offsite/secret.example.yaml` (a MinIO user with write access to the bucket, or S3 keys).
+The PVC is mounted read-only; because the PVCs are ReadWriteOnce, keep the upload schedule
+clear of the dump schedule.
+
+## Logging
+
+Promtail (a DaemonSet) tails `/var/log/pods` on every node (containerd, CRI-O or the docker runtime) and pushes to Loki (single binary,
+20Gi, 7-day retention). Grafana has a `Loki` datasource and a provisioned "Cluster overview"
+dashboard; add more JSON dashboards under `monitoring/grafana/dashboards/` and list them in its
+`kustomization.yaml`. Promtail runs as root with a read-only `hostPath` mount, so the
+`monitoring` namespace must not enforce the `restricted` Pod Security level.
+
+## TLS and secrets
+
+- **TLS:** install cert-manager, apply `cert-manager/` (set your email first), add the
+  `components/cert-manager-tls` component to an overlay and give each Ingress a `tls:` section, as in
+  `overlays/prod`. Test with `letsencrypt-staging` before switching to `letsencrypt-prod`.
+- **Secrets:** install the External Secrets Operator, apply `external-secrets/clustersecretstore.example.yaml`
+  (edited for your store), then use `ExternalSecret` objects like `overlays/prod/externalsecrets.yaml`
+  instead of `secret.yaml` files.
