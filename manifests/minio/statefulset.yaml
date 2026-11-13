@@ -13,12 +13,19 @@ spec:
         prometheus.io/path: /minio/v2/metrics/cluster
     spec:
       securityContext:
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: minio
-          image: minio/minio:RELEASE.2024-10-13T13-34-11Z
+          # MinIO no longer publishes community images to Docker Hub or Quay. Chainguard's free tier only
+          # offers :latest (non-root uid 65532, no shell); pin a digest or mirror it to your own registry for
+          # reproducible deploys.
+          image: cgr.dev/chainguard/minio:latest
+          securityContext:
+            allowPrivilegeEscalation: false
           args: ["server", "/data", "--console-address", ":9001"]
           ports:
             - name: api

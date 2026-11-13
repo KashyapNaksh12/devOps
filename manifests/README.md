@@ -14,7 +14,7 @@ Kustomize base, so it can be applied directly or referenced as a base from an ov
 | elasticsearch | StatefulSet | elasticsearch:8.15.3 | 9200 | 20Gi |
 | kafka    | StatefulSet | apache/kafka:3.8.1 (KRaft) | 9092 | 20Gi |
 | sonarqube | StatefulSet + Postgres | sonarqube:10.7.0-community | 9000 | 10Gi + 10Gi |
-| minio    | StatefulSet | minio/minio:RELEASE.2024-10-13T13-34-11Z | 9000 / 9001 (console) | 20Gi |
+| minio    | StatefulSet | cgr.dev/chainguard/minio:latest | 9000 / 9001 (console) | 20Gi |
 | memcached | Deployment | memcached:1.6 | 11211 | -     |
 | jenkins  | StatefulSet | jenkins/jenkins:2.479.1-lts-jdk17 | 8080 / 50000 (agents) | 20Gi |
 

@@ -91,7 +91,7 @@ Reusable single-instance Kustomize bases live in `manifests/`:
 | elasticsearch | StatefulSet | elasticsearch:8.15.3 | 9200 |
 | kafka    | StatefulSet | apache/kafka:3.8.1 | 9092 |
 | sonarqube | StatefulSet | sonarqube:10.7.0-community | 9000 |
-| minio    | StatefulSet | minio/minio:RELEASE.2024-10-13T13-34-11Z | 9000 |
+| minio    | StatefulSet | cgr.dev/chainguard/minio:latest | 9000 |
 | memcached | Deployment | memcached:1.6 | 11211 |
 | jenkins  | StatefulSet | jenkins/jenkins:2.479.1-lts-jdk17 | 8080 |
 | prometheus / grafana | StatefulSet / Deployment | prom/prometheus:v2.55.1, grafana/grafana:11.3.0 | 9090 / 3000 |
